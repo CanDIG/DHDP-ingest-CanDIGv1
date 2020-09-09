@@ -502,8 +502,8 @@ def main():
     parser.add_argument('output-file', help='path to output file in JSON format')
     args = parser.parse_args()
 
-    input_file = args.input_file
-    output_file = args.output_file
+    input_file = getattr(args, 'input-file')
+    output_file = getattr(args, 'output-file')
 
     csv_file = None
     try:
