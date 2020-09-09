@@ -1,4 +1,5 @@
 import argparse
+import sys
 import csv
 import json
 
@@ -538,12 +539,14 @@ def main():
             json.dump(output_dict, json_file)
         except OSError as e:
             print(f'Error opening {output_file}: ', e)
+            sys.exit(1)
         finally:
             if json_file:
                 json_file.close()
 
     except OSError as e:
         print(f'Error opening {input_file}: ', e)
+        sys.exit(1)
     finally:
         if csv_file:
             csv_file.close()
