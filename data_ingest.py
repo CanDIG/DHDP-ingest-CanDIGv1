@@ -3,496 +3,76 @@ import sys
 import csv
 import json
 
-patient_keys = {
-    "patientId",
-    "otherIds",
-    "dateOfBirth",
-    "gender",
-    "ethnicity",
-    "race",
-    "provinceOfResidence",
-    "dateOfDeath",
-    "causeOfDeath",
-    "autopsyTissueForResearch",
-    "dateOfPriorMalignancy",
-    "familyHistoryAndRiskFactors",
-    "familyHistoryOfPredispositionSyndrome"
-    "detailsOfPredispositionSyndrome",
-    "geneticCancerSyndrome",
-    "otherGeneticConditionOrSignificantComorbidity",
-    "occupationalOrEnvironmentalExposure",
-    "dateOfBirthTier",
-    "ethnicityTier",
-    "raceTier",
-    "dateOfDeathTier",
-    "priorMalignancyTier",
-    "dateOfPriorMalignancyTier",
-    "familyHistoryAndRiskFactorsTier",
-    "familyHistoryOfPredispositionSyndromeTier",
-    "detailsOfPredispositionSyndromeTier",
-    "geneticCancerSyndromeTier",
-    "otherGeneticConditionOrSignificantComorbidityTier",
-    "causeOfDeathTier",
-    "occupationalOrEnvironmentalExposureTier",
-    "patientIdTier",
-    "otherIdsTier",
-    "genderTier",
-    "provinceOfResidenceTier",
-    "autopsyTissueForResearchTier"
+
+patient_mapping = {
+    "patientId": "Patient ID",
+    "gender": "SEX",
+    "otherIds": "PATIENT DISPLAY NAME"
 }
 
-enrollment_keys = {
-    "patientId",
-    "enrollmentInstitution",
-    "enrollmentApprovalDate",
-    "crossEnrollment",
-    "otherPersonalizedMedicineStudyName",
-    "otherPersonalizedMedicineStudyId",
-    "ageAtEnrollment",
-    "eligibilityCategory",
-    "statusAtEnrollment",
-    "primaryOncologistName",
-    "primaryOncologistContact",
-    "referringPhysicianName",
-    "referringPhysicianContact",
-    "summaryOfIdRequest",
-    "treatingCentreName",
-    "treatingCentreProvince",
-    "enrollmentApprovalDateTier",
-    "primaryOncologistNameTier",
-    "primaryOncologistContactTier",
-    "referringPhysicianNameTier",
-    "referringPhysicianContactTier",
-    "enrollmentInstitutionTier",
-    "crossEnrollmentTier",
-    "eligibilityCategoryTier",
-    "statusAtEnrollmentTier",
-    "summaryOfIdRequestTier",
-    "treatingCentreNameTier",
-    "otherPersonalizedMedicineStudyNameTier",
-    "otherPersonalizedMedicineStudyIdTier",
-    "patientIdTier",
-    "ageAtEnrollmentTier",
-    "treatingCentreProvinceTier"
+enrollment_mapping = {
+    "patientId": "Patient ID",
+    "ageAtEnrollment": "AGE"
 }
 
-consent_keys = {
-    "patientId",
-    "consentId",
-    "consentDate",
-    "consentVersion",
-    "patientConsentedTo",
-    "reasonForRejection",
-    "wasAssentObtained",
-    "dateOfAssent",
-    "assentFormVersion",
-    "ifAssentNotObtainedWhyNot",
-    "reconsentDate",
-    "reconsentVersion",
-    "consentingCoordinatorName",
-    "previouslyConsented",
-    "nameOfOtherBiobank",
-    "hasConsentBeenWithdrawn",
-    "dateOfConsentWithdrawal",
-    "typeOfConsentWithdrawal",
-    "reasonForConsentWithdrawal",
-    "consentFormComplete",
-    "consentDateTier",
-    "patientConsentedToTier",
-    "reasonForRejectionTier",
-    "dateOfAssentTier",
-    "reconsentDateTier",
-    "consentingCoordinatorNameTier",
-    "dateOfConsentWithdrawalTier",
-    "typeOfConsentWithdrawalTier",
-    "reasonForConsentWithdrawalTier",
-    "consentIdTier",
-    "wasAssentObtainedTier",
-    "assentFormVersionTier",
-    "ifAssentNotObtainedWhyNotTier",
-    "reconsentVersionTier",
-    "previouslyConsentedTier",
-    "hasConsentBeenWithdrawnTier",
-    "consentVersionTier",
-    "nameOfOtherBiobankTier",
-    "consentFormCompleteTier",
-    "patientIdTier"
+sample_mapping = {
+    "patientId": "Patient ID",
+    "sampleId": "Sample ID",
+    "cancerType": "CANCER TYPE",
+    "cancerSubtype": "CANCER TYPE DETAILED",
+    "sampleType": lambda row, *_: row['SAMPLE TYPE'] + " " + row['SAMPLE CLASS'],
+    "otherBiobank": "STORAGE"
 }
 
-diagnosis_keys = {
-    "patientId",
-    "diagnosisId",
-    "diagnosisDate",
-    "ageAtDiagnosis",
-    "cancerType",
-    "classification",
-    "cancerSite",
-    "histology",
-    "methodOfDefinitiveDiagnosis",
-    "sampleType",
-    "sampleSite",
-    "tumorGrade",
-    "gradingSystemUsed",
-    "sitesOfMetastases",
-    "stagingSystem",
-    "versionOrEditionOfTheStagingSystem",
-    "specificTumorStageAtDiagnosis",
-    "prognosticBiomarkers",
-    "biomarkerQuantification",
-    "additionalMolecularTesting",
-    "additionalTestType",
-    "laboratoryName",
-    "laboratoryAddress",
-    "siteOfMetastases",
-    "stagingSystemVersion",
-    "specificStage",
-    "cancerSpecificBiomarkers",
-    "additionalMolecularDiagnosticTestingPerformed",
-    "additionalTest",
-    "laboratoryAddressTier",
-    "gradingSystemUsedTier",
-    "stagingSystemTier",
-    "prognosticBiomarkersTier",
-    "biomarkerQuantificationTier",
-    "additionalMolecularTestingTier",
-    "additionalTestTypeTier",
-    "laboratoryNameTier",
-    "stagingSystemVersionTier",
-    "specificStageTier",
-    "cancerSpecificBiomarkersTier",
-    "additionalMolecularDiagnosticTestingPerformedTier",
-    "additionalTestTier",
-    "diagnosisDateTier",
-    "ageAtDiagnosisTier",
-    "tumorGradeTier",
-    "specificTumorStageAtDiagnosisTier",
-    "siteOfMetastasesTier",
-    "patientIdTier",
-    "diagnosisIdTier",
-    "cancerTypeTier",
-    "classificationTier",
-    "cancerSiteTier",
-    "histologyTier",
-    "methodOfDefinitiveDiagnosisTier",
-    "sampleTypeTier",
-    "sampleSiteTier",
-    "sitesOfMetastasesTier",
-    "versionOrEditionOfTheStagingSystemTier"
+treatment_mapping = {
+    "patientId": "Patient ID",
+    "unexpectedOrUnusualToxicityDuringTreatment": "IRAE EVENT STATUS",
+    "reasonForEndingTheTreatment": "REASON OFF TRIAL"
 }
 
-sample_keys = {
-    "patientId",
-    "sampleId",
-    "diagnosisId",
-    "localBiobankId",
-    "collectionDate",
-    "collectionHospital",
-    "sampleType",
-    "tissueDiseaseState",
-    "anatomicSiteTheSampleObtainedFrom",
-    "cancerType",
-    "cancerSubtype",
-    "pathologyReportId",
-    "morphologicalCode",
-    "topologicalCode",
-    "shippingDate",
-    "receivedDate",
-    "qualityControlPerformed",
-    "estimatedTumorContent",
-    "quantity",
-    "units",
-    "associatedBiobank",
-    "otherBiobank",
-    "sopFollowed",
-    "ifNotExplainAnyDeviation",
-    "pathologyReportIdTier",
-    "shippingDateTier",
-    "receivedDateTier",
-    "collectionDateTier",
-    "tissueDiseaseStateTier",
-    "quantityTier",
-    "unitsTier",
-    "otherBiobankTier",
-    "ifNotExplainAnyDeviationTier",
-    "collectionHospitalTier",
-    "sampleTypeTier",
-    "anatomicSiteTheSampleObtainedFromTier",
-    "qualityControlPerformedTier",
-    "associatedBiobankTier",
-    "sopFollowedTier",
-    "patientIdTier",
-    "sampleIdTier",
-    "diagnosisIdTier",
-    "localBiobankIdTier",
-    "cancerTypeTier",
-    "cancerSubtypeTier",
-    "morphologicalCodeTier",
-    "topologicalCodeTier",
-    "estimatedTumorContentTier",
-    "recordingDateTier",
-    "startIntervalTier"
+outcome_types = [
+    "Disease Free Status",
+    "RECIST1.1 BEST OVERALL RESPONSE"
+]
+
+outcome_mapping = {
+    "patientId": "Patient ID",
+    "overallSurvivalInMonths": "Overall Survival",
+    "vitalStatus": "Overall Survival Status",
+    "diseaseFreeSurvivalInMonths": "Disease Free Survival",
+    "responseCriteriaUsed": lambda *_: outcome_types.pop(0),
+    "diseaseResponseOrStatus": lambda row, dictionary: row[dictionary["responseCriteriaUsed"]]
 }
 
-treatment_keys = {
-    "patientId",
-    "courseNumber",
-    "therapeuticModality",
-    "treatmentPlanType",
-    "treatmentIntent",
-    "startDate",
-    "stopDate",
-    "reasonForEndingTheTreatment",
-    "responseToTreatment",
-    "dateOfRecurrenceOrProgressionAfterThisTreatment",
-    "unexpectedOrUnusualToxicityDuringTreatment",
-    "diagnosisId",
-    "treatmentPlanId",
-    "responseCriteriaUsed",
-    "treatmentPlanTypeTier",
-    "treatmentIntentTier",
-    "reasonForEndingTheTreatmentTier",
-    "surgeryDetailsTier",
-    "responseCriteriaUsedTier",
-    "courseNumberTier",
-    "therapeuticModalityTier",
-    "systematicTherapyAgentNameTier",
-    "startDateTier",
-    "stopDateTier",
-    "responseToTreatmentTier",
-    "dateOfRecurrenceOrProgressionAfterThisTreatmentTier",
-    "unexpectedOrUnusualToxicityDuringTreatmentTier",
-    "patientIdTier"
-}
+labtest_event_types = [
+    "BASELINE_TUMOR_CD4 (% of CD3)",
+    "BASELINE_TUMOR_CD8 (% of CD3)",
+    "BASELINE_TUMOR_PD1 (% CD8)"
+]
 
-outcome_keys = {
-    "patientId",
-    "physicalExamId",
-    "dateOfAssessment",
-    "diseaseResponseOrStatus",
-    "otherResponseClassification",
-    "minimalResidualDiseaseAssessment",
-    "methodOfResponseEvaluation",
-    "responseCriteriaUsed",
-    "summaryStage",
-    "sitesOfAnyProgressionOrRecurrence",
-    "vitalStatus",
-    "height",
-    "weight",
-    "heightUnits",
-    "weightUnits",
-    "performanceStatus",
-    "dateOfAssessmentTier",
-    "otherResponseClassificationTier",
-    "minimalResidualDiseaseAssessmentTier",
-    "methodOfResponseEvaluationTier",
-    "responseCriteriaUsedTier",
-    "summaryStageTier",
-    "sitesOfAnyProgressionOrRecurrenceTier",
-    "vitalStatusTier",
-    "diseaseResponseOrStatusTier",
-    "heightTier",
-    "weightTier",
-    "heightUnitsTier",
-    "weightUnitsTier",
-    "performanceStatusTier",
-    "patientIdTier",
-    "physicalExamIdTier",
-    "overallSurvivalInMonthsTier",
-    "diseaseFreeSurvivalInMonthsTier"
-}
-
-complication_keys = {
-    "patientId",
-    "date",
-    "lateComplicationOfTherapyDeveloped",
-    "lateToxicityDetail",
-    "suspectedTreatmentInducedNeoplasmDeveloped",
-    "treatmentInducedNeoplasmDetails",
-    "suspectedTreatmentInducedNeoplasmDevelopedTier",
-    "treatmentInducedNeoplasmDetailsTier",
-    "dateTier",
-    "lateComplicationOfTherapyDevelopedTier",
-    "lateToxicityDetailTier",
-    "patientIdTier"
-}
-
-tumourboard_keys = {
-    "patientId",
-    "dateOfMolecularTumorBoard",
-    "typeOfSampleAnalyzed",
-    "typeOfTumourSampleAnalyzed",
-    "analysesDiscussed",
-    "somaticSampleType",
-    "normalExpressionComparator",
-    "diseaseExpressionComparator",
-    "hasAGermlineVariantBeenIdentifiedByProfilingThatMayPredisposeToCancer",
-    "actionableTargetFound",
-    "molecularTumorBoardRecommendation",
-    "germlineDnaSampleId",
-    "tumorDnaSampleId",
-    "tumorRnaSampleId",
-    "germlineSnvDiscussed",
-    "somaticSnvDiscussed",
-    "cnvsDiscussed",
-    "structuralVariantDiscussed",
-    "classificationOfVariants",
-    "clinicalValidationProgress",
-    "typeOfValidation",
-    "agentOrDrugClass",
-    "levelOfEvidenceForExpressionTargetAgentMatch",
-    "didTreatmentPlanChangeBasedOnProfilingResult",
-    "howTreatmentHasAlteredBasedOnProfiling",
-    "reasonTreatmentPlanDidNotChangeBasedOnProfiling",
-    "detailsOfTreatmentPlanImpact",
-    "patientOrFamilyInformedOfGermlineVariant",
-    "patientHasBeenReferredToAHereditaryCancerProgramBasedOnThisMolecularProfiling",
-    "summaryReport",
-    "dateOfMolecularTumorBoardTier",
-    "summaryReportTier",
-    "typeOfSampleAnalyzedTier",
-    "typeOfTumourSampleAnalyzedTier",
-    "analysesDiscussedTier",
-    "somaticSampleTypeTier",
-    "normalExpressionComparatorTier",
-    "diseaseExpressionComparatorTier",
-    "hasAGermlineVariantBeenIdentifiedByProfilingThatMayPredisposeToCancerTier",
-    "actionableTargetFoundTier",
-    "molecularTumorBoardRecommendationTier",
-    "germlineDnaSampleIdTier",
-    "tumorDnaSampleIdTier",
-    "tumorRnaSampleIdTier",
-    "germlineSnvDiscussedTier",
-    "somaticSnvDiscussedTier",
-    "cnvsDiscussedTier",
-    "structuralVariantDiscussedTier",
-    "classificationOfVariantsTier",
-    "clinicalValidationProgressTier",
-    "typeOfValidationTier",
-    "agentOrDrugClassTier",
-    "levelOfEvidenceForExpressionTargetAgentMatchTier",
-    "didTreatmentPlanChangeBasedOnProfilingResultTier",
-    "howTreatmentHasAlteredBasedOnProfilingTier",
-    "reasonTreatmentPlanDidNotChangeBasedOnProfilingTier",
-    "detailsOfTreatmentPlanImpactTier",
-    "patientOrFamilyInformedOfGermlineVariantTier",
-    "patientHasBeenReferredToAHereditaryCancerProgramBasedOnThisMolecularProfilingTier",
-    "patientIdTier"
-}
-
-chemotherapy_keys = {
-    "patientId",
-    "courseNumber",
-    "startDate",
-    "stopDate",
-    "systematicTherapyAgentName",
-    "route",
-    "dose",
-    "doseUnit",
-    "doseFrequency",
-    "daysPerCycle",
-    "numberOfCycle",
-    "treatmentIntent",
-    "treatingCentreName",
-    "type",
-    "protocolCode",
-    "recordingDate",
-    "treatmentPlanId",
-    "patientIdTier",
-    "courseNumberTier",
-    "startDateTier",
-    "stopDateTier",
-    "systematicTherapyAgentNameTier",
-    "routeTier",
-    "doseTier",
-    "doseFrequencyTier",
-    "doseUnitTier",
-    "daysPerCycleTier",
-    "numberOfCycleTier",
-    "treatmentIntentTier",
-    "treatingCentreNameTier",
-    "typeTier",
-    "protocolCodeTier",
-    "recordingDateTier",
-    "treatmentPlanIdTier"
-}
-
-slide_keys = {
-    "patientId",
-    "sampleId",
-    "slideId",
-    "slideOtherId",
-    "lymphocyteInfiltrationPercent",
-    "monocyteInfiltrationPercent",
-    "normalCellsPercent",
-    "tumorCellsPercent",
-    "stromalCellsPercent",
-    "eosinophilInfiltrationPercent",
-    "neutrophilInfiltrationPercent",
-    "granulocyteInfiltrationPercent",
-    "necrosisPercent",
-    "inflammatoryInfiltrationPercent",
-    "proliferatingCellsNumber",
-    "sectionLocation",
-    "tumorNucleiPercent",
-    "patientIdTier",
-    "sampleIdTier",
-    "slideIdTier",
-    "slideOtherIdTier",
-    "lymphocyteInfiltrationPercentTier",
-    "tumorNucleiPercentTier",
-    "monocyteInfiltrationPercentTier",
-    "normalCellsPercentTier",
-    "tumorCellsPercentTier",
-    "stromalCellsPercentTier",
-    "eosinophilInfiltrationPercentTier",
-    "neutrophilInfiltrationPercentTier",
-    "granulocyteInfiltrationPercentTier",
-    "necrosisPercentTier",
-    "inflammatoryInfiltrationPercentTier",
-    "proliferatingCellsNumberTier",
-    "sectionLocationTier"
-}
-
-study_keys = {
-    "patientId",
-    "startDate",
-    "endDate",
-    "status",
-    "recordingDate",
-    "patientIdTier",
-    "startDateTier",
-    "endDateTier",
-    "statusTier",
-    "recordingDateTier"
-}
-
-labtest_keys = {
-    "patientId",
-    "startDate",
-    "collectionDate",
-    "endDate",
-    "eventType",
-    "testResults",
-    "timePoint",
-    "recordingDate",
-    "patientIdTier",
-    "startDateTier",
-    "collectionDateTier",
-    "endDateTier",
-    "eventTypeTier",
-    "testResultsTier",
-    "timePointTier",
-    "recordingDateTier"
+labtest_mapping = {
+    "patientId": "Patient ID",
+    "eventType": lambda *_: labtest_event_types.pop(0),
+    "timePoint": lambda *_: "Baseline",
+    "testResults": lambda row, dictionary: row[dictionary["eventType"]]
 }
 
 
-def get_dict(keys, mapping, tier_values, row):
-    return_dict = dict.fromkeys(keys, "")
-    for key in return_dict:
-        if key in mapping:
+def get_dict(mapping, row):
+    """
+    Returns a dictionary with values in <row> mapped to their corresponding keys in <mapping> (if there is one).
+
+    :param dict[str, str | (dict[str, str], dict[str, str]) -> str] mapping: maps JSON key names to CSV fieldnames
+    :param dict[str, str] row: maps each CSV fieldname to its value in a CSV row
+    :return: values in a CSV row mapped to their corresponding JSON keys (if there is one)
+    :rtype: dict[str, str]
+    """
+    return_dict = {}
+    for key in mapping:
+        if type(mapping[key]) == str:
             return_dict[key] = row[mapping[key]]
-        elif key in tier_values:
-            return_dict[key] = tier_values[key]
+        else:  # if the value of the key is of a function type
+            return_dict[key] = mapping[key](row, return_dict)
 
     return return_dict
 
@@ -517,21 +97,33 @@ def main():
             row = dict(row)
             output_dict['metadata'].append(
                 {
-                    "Patient": get_dict(patient_keys, row),
-                    "Enrollment": get_dict(enrollment_keys, row),
-                    "Consent": get_dict(consent_keys, row),
-                    "Diagnosis": get_dict(diagnosis_keys, row),
-                    "Sample": get_dict(sample_keys, row),
-                    "Treatment": get_dict(treatment_keys, row),
-                    "Outcome": get_dict(outcome_keys, row),
-                    "Complication": get_dict(complication_keys, row),
-                    "Tumourboard": get_dict(tumourboard_keys, row),
-                    "Chemotherapy": get_dict(chemotherapy_keys, row),
-                    "Slide": get_dict(slide_keys, row),
-                    "Study": get_dict(study_keys, row),
-                    "Labtest": get_dict(labtest_keys, row)
+                    "Patient": get_dict(patient_mapping, row),
+                    "Enrollment": get_dict(enrollment_mapping, row),
+                    "Sample": get_dict(sample_mapping, row),
+                    "Treatment": get_dict(treatment_mapping, row),
+                    "Outcome": [
+                        get_dict(outcome_mapping, row),
+                        get_dict(outcome_mapping, row)
+                    ],
+                    "Labtest": [
+                        get_dict(labtest_mapping, row),
+                        get_dict(labtest_mapping, row),
+                        get_dict(labtest_mapping, row)
+                    ]
                 }
             )
+
+            # reset global lists to their original state for the next iteration
+            global outcome_types, labtest_event_types
+            outcome_types = [
+                "Disease Free Status",
+                "RECIST1.1 BEST OVERALL RESPONSE"
+            ]
+            labtest_event_types = [
+                "BASELINE_TUMOR_CD4 (% of CD3)",
+                "BASELINE_TUMOR_CD8 (% of CD3)",
+                "BASELINE_TUMOR_PD1 (% CD8)"
+            ]
 
         json_file = None
         try:
