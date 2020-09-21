@@ -12,6 +12,7 @@ patient_mapping = {
 
 enrollment_mapping = {
     "patientId": "Patient ID",
+    "enrollmentApprovalDate": lambda *_: "N/A",
     "ageAtEnrollment": "AGE"
 }
 
@@ -26,33 +27,25 @@ sample_mapping = {
 
 treatment_mapping = {
     "patientId": "Patient ID",
+    "startDate": lambda *_: "N/A",
     "unexpectedOrUnusualToxicityDuringTreatment": "IRAE EVENT STATUS",
     "reasonForEndingTheTreatment": "REASON OFF TRIAL"
 }
 
-outcome_types = [
-    "Disease Free Status",
-    "RECIST1.1 BEST OVERALL RESPONSE"
-]
-
 outcome_mapping = {
     "patientId": "Patient ID",
+    "dateOfAssessment": lambda *_: "N/A",
     "overallSurvivalInMonths": "Overall Survival",
     "vitalStatus": "Overall Survival Status",
     "diseaseFreeSurvivalInMonths": "Disease Free Survival",
-    "responseCriteriaUsed": lambda *_: outcome_types.pop(0),
+    "responseCriteriaUsed": lambda *_: "Disease Free Status",
     "diseaseResponseOrStatus": lambda row, dictionary: row[dictionary["responseCriteriaUsed"]]
 }
 
-labtest_event_types = [
-    "BASELINE_TUMOR_CD4 (% of CD3)",
-    "BASELINE_TUMOR_CD8 (% of CD3)",
-    "BASELINE_TUMOR_PD1 (% CD8)"
-]
-
 labtest_mapping = {
     "patientId": "Patient ID",
-    "eventType": lambda *_: labtest_event_types.pop(0),
+    "startDate": lambda *_: "N/A",
+    "eventType": lambda *_: "BASELINE_TUMOR_CD4 (% of CD3)",
     "timePoint": lambda *_: "Baseline",
     "testResults": lambda row, dictionary: row[dictionary["eventType"]]
 }
@@ -101,29 +94,10 @@ def main():
                     "Enrollment": get_dict(enrollment_mapping, row),
                     "Sample": get_dict(sample_mapping, row),
                     "Treatment": get_dict(treatment_mapping, row),
-                    "Outcome": [
-                        get_dict(outcome_mapping, row),
-                        get_dict(outcome_mapping, row)
-                    ],
-                    "Labtest": [
-                        get_dict(labtest_mapping, row),
-                        get_dict(labtest_mapping, row),
-                        get_dict(labtest_mapping, row)
-                    ]
+                    "Outcome": get_dict(outcome_mapping, row),
+                    "Labtest": get_dict(labtest_mapping, row)
                 }
             )
-
-            # reset global lists to their original state for the next iteration
-            global outcome_types, labtest_event_types
-            outcome_types = [
-                "Disease Free Status",
-                "RECIST1.1 BEST OVERALL RESPONSE"
-            ]
-            labtest_event_types = [
-                "BASELINE_TUMOR_CD4 (% of CD3)",
-                "BASELINE_TUMOR_CD8 (% of CD3)",
-                "BASELINE_TUMOR_PD1 (% CD8)"
-            ]
 
         json_file = None
         try:
