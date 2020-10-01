@@ -12,7 +12,8 @@ patient_mapping = {
 
 enrollment_mapping = {
     "patientId": "Patient ID",
-    "ageAtEnrollment": "AGE"
+    "ageAtEnrollment": "AGE",
+    "localId": lambda _, dictionary: dictionary["patientId"] + "_enrollment_0"
 }
 
 sample_mapping = {
@@ -27,7 +28,8 @@ sample_mapping = {
 treatment_mapping = {
     "patientId": "Patient ID",
     "unexpectedOrUnusualToxicityDuringTreatment": "IRAE EVENT STATUS",
-    "reasonForEndingTheTreatment": "REASON OFF TRIAL"
+    "reasonForEndingTheTreatment": "REASON OFF TRIAL",
+    "localId": lambda _, dictionary: dictionary["patientId"] + "_treatment_0"
 }
 
 outcome_types = [
