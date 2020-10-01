@@ -35,13 +35,16 @@ outcome_types = [
     "RECIST1.1 BEST OVERALL RESPONSE"
 ]
 
+outcome_nums = [0, 1, 2]
+
 outcome_mapping = {
     "patientId": "Patient ID",
     "overallSurvivalInMonths": "Overall Survival",
     "vitalStatus": "Overall Survival Status",
     "diseaseFreeSurvivalInMonths": "Disease Free Survival",
     "responseCriteriaUsed": lambda *_: outcome_types.pop(0),
-    "diseaseResponseOrStatus": lambda row, dictionary: row[dictionary["responseCriteriaUsed"]]
+    "diseaseResponseOrStatus": lambda row, dictionary: row[dictionary["responseCriteriaUsed"]],
+    "localId": lambda _, dictionary: dictionary["patientId"] + "_outcome_" + str(outcome_nums.pop(0))
 }
 
 labtest_event_types = [
@@ -50,11 +53,14 @@ labtest_event_types = [
     "BASELINE_TUMOR_PD1 (% CD8)"
 ]
 
+labtest_nums = [0, 1, 2]
+
 labtest_mapping = {
     "patientId": "Patient ID",
     "eventType": lambda *_: labtest_event_types.pop(0),
     "timePoint": lambda *_: "Baseline",
-    "testResults": lambda row, dictionary: row[dictionary["eventType"]]
+    "testResults": lambda row, dictionary: row[dictionary["eventType"]],
+    "localId": lambda _, dictionary: dictionary["patientId"] + "_labtest_" + str(labtest_nums.pop(0))
 }
 
 
@@ -113,8 +119,8 @@ def main():
                 }
             )
 
-            # reset global lists to their original state for the next iteration
-            global outcome_types, labtest_event_types
+            # reset outcomes and labtests to their original state for the next iteration
+            global outcome_types, labtest_event_types, outcome_nums, labtest_nums
             outcome_types = [
                 "Disease Free Status",
                 "RECIST1.1 BEST OVERALL RESPONSE"
@@ -124,6 +130,9 @@ def main():
                 "BASELINE_TUMOR_CD8 (% of CD3)",
                 "BASELINE_TUMOR_PD1 (% CD8)"
             ]
+
+            outcome_nums = [0, 1, 2]
+            labtest_nums = [0, 1, 2]
 
         json_file = None
         try:
