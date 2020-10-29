@@ -1,5 +1,6 @@
 import argparse
 from datetime import datetime
+from dateutil import relativedelta
 import os
 import sys
 import csv
@@ -65,6 +66,13 @@ immunotherapy_mapping_0 = {
 immunotherapy_mapping_1 = {
     "patientId": "Subject",
     "immunotherapyType": "AGT_NAME",
+    "localId": lambda local_id: local_id
+}
+
+complication_mapping = {
+    "patientId": "Subject",
+    "date": "AE_ONSET_DT",
+    "lateComplicationOfTherapyDeveloped": "CTCAE4_LLT_NM",
     "localId": lambda local_id: local_id
 }
 
@@ -155,7 +163,7 @@ section_to_mapping_types = {
     "course initiation": [("Immunotherapy", immunotherapy_mapping_0)],
     "off treatment": [("Treatment", treatment_mapping_0)],
     "study agent administration": [("Immunotherapy", immunotherapy_mapping_1), ("Treatment", treatment_mapping_1)],
-    "adverse events": [],
+    "adverse events": [("Complication", complication_mapping)],
     "recistv1.1": [("Labtest", labtest_mapping_0), ("Labtest", labtest_mapping_1), ("Labtest", labtest_mapping_2),
                    ("Labtest", labtest_mapping_3), ("Labtest", labtest_mapping_4), ("Labtest", labtest_mapping_5),
                    ("Labtest", labtest_mapping_6), ("Labtest", labtest_mapping_7), ("Labtest", labtest_mapping_8),
@@ -167,7 +175,13 @@ patient_to_data = {}
 dead_patients = set()
 
 
-def update_dict(row):
+def update_patient_data(row):
+    """
+    Updates a patient's data with information provided in <row>.
+
+    :param dict[str, str] row: maps each CSV fieldname to its value in a CSV row
+    :return: None
+    """
     patient_id = row["Subject"]
     if patient_id not in patient_to_id_nums:
         patient_to_id_nums[patient_id] = dict.fromkeys(section_to_mapping_types.keys(), 0)
@@ -247,7 +261,7 @@ def main():
             reader = csv.DictReader(csv_file)
             for row in reader:
                 row = dict(row)
-                update_dict(row)
+                update_patient_data(row)
 
         except OSError as e:
             print(f'Error opening {input_files_dir + input_file}: ', e)
@@ -260,15 +274,18 @@ def main():
         if patient not in dead_patients:
             patient_to_data[patient]["Outcome"] = {
                 "patientId": patient,
-                "vitalStatus": "Alive"
+                "vitalStatus": "Alive",
+                "localId": "survival_" + str(patient_to_id_nums[patient]["survival"])
             }
+            patient_to_id_nums[patient]["survival"] += 1
         else:
             if "Diagnosis" in patient_to_data[patient] and\
                     len(patient_to_data[patient]["Diagnosis"]["diagnosisDate"]) > 0:
                 diagnosis_date = datetime.strptime(patient_to_data[patient]["Diagnosis"]["diagnosisDate"].split()[0], "%m/%d/%Y")
                 death_date = datetime.strptime(patient_to_data[patient]["Patient"]["dateOfDeath"].split()[0], "%m/%d/%Y")
-                survival_in_months = (death_date - diagnosis_date).days / 30
-                patient_to_data[patient]["Outcome"]["overallSurvivalInMonths"] = survival_in_months
+                dates_diff = relativedelta.relativedelta(death_date, diagnosis_date)
+                survival_in_months = (dates_diff.years * 12) + dates_diff.months + (dates_diff.days / 30)
+                patient_to_data[patient]["Outcome"]["overallSurvivalInMonths"] = str(survival_in_months)
 
     output_dict = {"metadata": list(patient_to_data.values())}
     json_file = None
