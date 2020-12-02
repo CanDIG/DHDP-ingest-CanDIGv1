@@ -32,7 +32,7 @@ section_to_mapping_types = {
         ("Patient", {
             "patientId": "Subject",
             "gender": "GENDER_CODE",
-            "dateOfBirth": "BIRTH_DATE_YM",
+            "dateOfBirth": "BIRTH_DATE_YM_INT",
             "ethnicity": "ETHNICITY_CODE_STD"
         }),
         ("Enrollment", {
@@ -75,6 +75,10 @@ section_to_mapping_types = {
         ("Patient", {
             "patientId": "Subject",
             "dateOfDeath": "DTH_DT"
+        }),
+        ("Outcome", {
+            "patientId": "Subject",
+            "vitalStatus": lambda x: "Dead"
         })
     ]
 }
@@ -168,7 +172,7 @@ def main():
             for row in reader:
                 update_patient_data(row)
 
-    for patient in patient_to_data.keys():
+    for patient in patient_to_data:
         if patient not in dead_patients:
             patient_to_data[patient]["Outcome"] = {
                 "patientId": patient,
