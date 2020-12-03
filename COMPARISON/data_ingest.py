@@ -10,8 +10,8 @@ import sys
 import csv
 import json
 from datetime import datetime
-from dateutil import relativedelta
 from collections import defaultdict
+from dateutil import relativedelta
 
 #
 # Below are the mappings from the CSV files to the elements of the CanDIGv1 data model
@@ -79,17 +79,16 @@ section_to_mapping_types = {
         }),
         ("Outcome", {
             "patientId": "Subject",
-            "vitalStatus": (lambda : "Dead",)
+            "vitalStatus": (lambda : "Dead",),
+            "dateOfAssessment": "DTH_DT"
         })
     ]
 }
 
 table_to_counts = {"Treatment": defaultdict(int),
                    "Diagnosis": defaultdict(int),
-                   "Enrollment": defaultdict(int),
-                   "Outcome": defaultdict(int)}
+                   "Enrollment": defaultdict(int)}
 patient_to_data = {}
-dead_patients = set()
 
 
 def update_patient_data(row):
@@ -131,7 +130,7 @@ def update_patient_data(row):
                 # function and argument namees
                 t = mapping_dict[key]
                 function = mapping_dict[key][0]
-                args = (row[item] for item in t[1:])
+                args = (row[item] for item in t[1:] if item in row)
                 new_dict[key] = function(*args)
 
         if counter:
@@ -146,9 +145,6 @@ def update_patient_data(row):
                 curr_patient_data[mapping_name] = [curr_patient_data[mapping_name], new_dict]
         else:
             curr_patient_data[mapping_name] = new_dict
-
-        if mapping_name == "Outcome" and patient_to_data[patient_id]["Outcome"]["vitalStatus"].strip().lower() == "dead":
-            dead_patients.add(patient_id)
 
 
 def main():
@@ -177,12 +173,10 @@ def main():
                 update_patient_data(row)
 
     for patient in patient_to_data:
-        if patient not in dead_patients:
-            table_to_counts["Outcome"][patient] += 1
-            count = table_to_counts["Outcome"][patient]
+        if not "Outcome" in patient_to_data[patient]:
             patient_to_data[patient]["Outcome"] = {
                 "patientId": patient,
-                "localId": f"{patient}_outcome_{count}",
+                "localId": f"{patient}_outcome_1",
                 "vitalStatus": "Alive"
             }
         else:
