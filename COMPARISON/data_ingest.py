@@ -11,6 +11,7 @@ import csv
 import json
 from datetime import datetime
 from dateutil import relativedelta
+from collections import defaultdict
 
 #
 # Below are the mappings from the CSV files to the elements of the CanDIGv1 data model
@@ -24,7 +25,7 @@ from dateutil import relativedelta
 #            "gender": "GENDER_CODE"
 #         })]
 #
-# means that in the medidata rave files, demographics.GENDER_CODE -> Patient.patientId
+# means that in the medidata rave files, demographics.GENDER_CODE -> Patient.gender
 #
 
 section_to_mapping_types = {
@@ -44,8 +45,8 @@ section_to_mapping_types = {
         ("Diagnosis", {
             "patientId": "Subject",
             "diagnosisDate": "DIAG_PA",
-            "cancerType": "MALIGNANCY",
-            "histology": "HISTO_CYTO_DIAG",
+            "cancerType": (lambda s: s.lower(), "MALIGNANCY"),
+            "histology": (lambda s: s.lower(), "HISTO_CYTO_DIAG"),
             "tumorGrade": "GRADE_DIAG",
             "specificStage": "STAGE_DIAG"
         })
@@ -54,7 +55,7 @@ section_to_mapping_types = {
     "systemic therapy log": [
         ("Treatment", {
             "patientId": "Subject",
-            "therapeuticModality": "THER_TX_NAME",
+            "therapeuticModality": (lambda s: s.lower(), "THER_TX_NAME"),
             "startDate": "STRT_DT",
             "stopDate": "LAST_DATE",
             "responseToTreatment": "THER_BR"
@@ -67,7 +68,7 @@ section_to_mapping_types = {
             "sampleId": "SAMPLE_ID",
             "collectionDate": "SURG_DT",
             "sampleType": "ARCH_TMR_SITE",
-            "cancerType": "CANCER_TYPE_LONG"
+            "cancerType": (lambda s: s.lower(), "CANCER_TYPE_LONG")
         })
     ],
 
@@ -78,12 +79,15 @@ section_to_mapping_types = {
         }),
         ("Outcome", {
             "patientId": "Subject",
-            "vitalStatus": lambda x: "Dead"
+            "vitalStatus": (lambda : "Dead",)
         })
     ]
 }
 
-patient_to_id_nums = {}
+table_to_counts = {"Treatment": defaultdict(int),
+                   "Diagnosis": defaultdict(int),
+                   "Enrollment": defaultdict(int),
+                   "Outcome": defaultdict(int)}
 patient_to_data = {}
 dead_patients = set()
 
@@ -102,9 +106,6 @@ def update_patient_data(row):
     mapping_types = section_to_mapping_types[section]
 
     patient_id = row["Subject"]
-    if patient_id not in patient_to_id_nums:
-        patient_to_id_nums[patient_id] = dict.fromkeys(section_to_mapping_types.keys(), 0)
-
     if patient_id not in patient_to_data:
         patient_to_data[patient_id] = {
             "Patient": {
@@ -113,22 +114,28 @@ def update_patient_data(row):
         }
     curr_patient_data = patient_to_data[patient_id]
 
-    increment_id_num = False
     for mapping_type in mapping_types:
         mapping_name = mapping_type[0]
         mapping_dict = mapping_type[1]
+
+        counter = None
+        if mapping_name in table_to_counts:
+            counter = table_to_counts[mapping_name]
+            counter[patient_id] += 1
 
         new_dict = {}
         for key in mapping_dict:
             if isinstance(mapping_dict[key], str):
                 new_dict[key] = row[mapping_dict[key]]
-            else:  # if the value of the key is of a function type
-                args = []
-                new_id = section.replace(" ", "_") + "_"
-                new_id += str(patient_to_id_nums[patient_id][section])
-                args.insert(0, new_id)
-                new_dict[key] = mapping_dict[key](*args)
-                increment_id_num = True
+            else:  # if the value of the key is of a tuple, 
+                # function and argument namees
+                t = mapping_dict[key]
+                function = mapping_dict[key][0]
+                args = (row[item] for item in t[1:])
+                new_dict[key] = function(*args)
+
+        if counter:
+            new_dict["localId"] = f"{patient_id}_{mapping_name.lower()}_{counter[patient_id]}"
 
         if mapping_name in curr_patient_data:
             if mapping_name == "Patient":
@@ -143,9 +150,6 @@ def update_patient_data(row):
         if mapping_name == "Outcome" and patient_to_data[patient_id]["Outcome"]["vitalStatus"].strip().lower() == "dead":
             dead_patients.add(patient_id)
 
-    if increment_id_num:
-        patient_to_id_nums[patient_id][section] += 1
-
 
 def main():
     """
@@ -157,7 +161,7 @@ def main():
     parser.add_argument('output', help='path to output file in JSON format', type=argparse.FileType('w'), default=sys.stdout)
     args = parser.parse_args()
 
-    input_files_dir = getattr(args, 'inputdir')
+    input_files_dir = args.inputdir
     outfile = args.output
 
     try:
@@ -174,8 +178,11 @@ def main():
 
     for patient in patient_to_data:
         if patient not in dead_patients:
+            table_to_counts["Outcome"][patient] += 1
+            count = table_to_counts["Outcome"][patient]
             patient_to_data[patient]["Outcome"] = {
                 "patientId": patient,
+                "localId": f"{patient}_outcome_{count}",
                 "vitalStatus": "Alive"
             }
         else:
