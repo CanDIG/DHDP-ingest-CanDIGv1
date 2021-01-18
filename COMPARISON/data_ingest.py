@@ -145,7 +145,7 @@ section_to_mapping_types = {
         ("Outcome", {
             "patientId": "Subject",
             "vitalStatus": (lambda : "Dead",),
-            "dateOfAssessment": "DTH_DT",
+            "dateOfAssessment": (date_from_datetime, "DTH_DT"),
             "localId": (outcome_label, "Subject")
         })
     ]
@@ -193,7 +193,7 @@ def update_patient_data(row):
         for key in mapping_dict:
             if isinstance(mapping_dict[key], str):
                 new_dict[key] = row[mapping_dict[key]]
-            else:  # if the value of the key is of a tuple, 
+            else:  # if the value of the key is of a tuple,
                 # function and argument namees
                 t = mapping_dict[key]
                 function, argitems = t[0], t[1:]
@@ -221,7 +221,8 @@ def main():
     """
     parser = argparse.ArgumentParser()
     parser.add_argument('inputdir', help='path to directory containing input files in CSV format')
-    parser.add_argument('output', help='path to output file in JSON format', type=argparse.FileType('w'), default=sys.stdout)
+    parser.add_argument('output', help='path to output file in JSON format',
+                        type=argparse.FileType('w'), default=sys.stdout)
     args = parser.parse_args()
 
     input_files_dir = args.inputdir
@@ -257,7 +258,7 @@ def main():
                     len(patient_to_data[patient_id]["Diagnosis"]["diagnosisDate"]) > 0:
                 diagnosis_date = datetime.strptime(patient_to_data[patient_id]["Diagnosis"]["diagnosisDate"], "%m/%d/%Y")
                 death_date = datetime.strptime(patient_to_data[patient_id]["Patient"]["dateOfDeath"], "%m/%d/%Y")
-                new_dict["dateOfAssessment"] = str(death_date)
+                new_dict["dateOfAssessment"] = date_from_datetime(str(death_date))
                 dates_diff = relativedelta.relativedelta(death_date, diagnosis_date)
                 survival_in_months = (dates_diff.years * 12) + dates_diff.months + (dates_diff.days / 30)
                 new_dict["overallSurvivalInMonths"] = str(survival_in_months)
@@ -265,14 +266,13 @@ def main():
             if not "Outcome" in patient_to_data[patient_id]:
                 patient_to_data[patient_id]["Outcome"] = new_dict
             elif isinstance(patient_to_data[patient_id]["Outcome"], dict):
-                patient_to_data[patient_id]["Outcome"] = [patient_to_data[patient_id]["Outcome"], new_dict]
+                patient_to_data[patient_id]["Outcome"]["overallSurvivalInMonths"] = new_dict["overallSurvivalInMonths"]
             elif isinstance(patient_to_data[patient_id]["Outcome"], list):
-                patient_to_data[patient_id]["Outcome"].append(new_dict)
-
-# patient_to_data[patient_id]["Outcome"][local_id]["overallSurvivalInMonths"] = str(survival_in_months)
+                patient_to_data[patient_id]["Outcome"][-1]["overallSurvivalInMonths"] = new_dict["overallSurvivalInMonths"]
 
     output_dict = {"metadata": list(patient_to_data.values())}
     json.dump(output_dict, outfile)
+
 
 if __name__ == '__main__':
     main()
