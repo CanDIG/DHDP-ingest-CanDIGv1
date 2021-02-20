@@ -236,7 +236,6 @@ def main():
         sys.exit(1)
 
     for input_file in input_files:
-        print(input_file)
         with open(os.path.join(input_files_dir, input_file), 'r') as csv_file:
             reader = csv.DictReader(csv_file)
             for row in reader:
