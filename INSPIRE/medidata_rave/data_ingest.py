@@ -282,16 +282,17 @@ def main():
             if "Diagnosis" in patient_to_data[patient] and\
                     len(patient_to_data[patient]["Diagnosis"]["diagnosisDate"]) > 0:
                 diagnosis_date = datetime.strptime(patient_to_data[patient]["Diagnosis"]["diagnosisDate"].split()[0], "%m/%d/%Y")
-                death_date = datetime.strptime(patient_to_data[patient]["Patient"]["dateOfDeath"].split()[0], "%m/%d/%Y")
-                dates_diff = relativedelta.relativedelta(death_date, diagnosis_date)
-                survival_in_months = (dates_diff.years * 12) + dates_diff.months + (dates_diff.days / 30)
-                patient_to_data[patient]["Outcome"]["overallSurvivalInMonths"] = str(survival_in_months)
+                if "dateOfDeath" in patient_to_data[patient]["Patient"] and patient_to_data[patient]["Patient"]["dateOfDeath"]:
+                    death_date = datetime.strptime(patient_to_data[patient]["Patient"]["dateOfDeath"].split()[0], "%m/%d/%Y")
+                    dates_diff = relativedelta.relativedelta(death_date, diagnosis_date)
+                    survival_in_months = (dates_diff.years * 12) + dates_diff.months + (dates_diff.days / 30)
+                    patient_to_data[patient]["Outcome"]["overallSurvivalInMonths"] = str(survival_in_months)
 
     output_dict = {"metadata": list(patient_to_data.values())}
     json_file = None
     try:
         json_file = open(output_file, 'w')
-        json.dump(output_dict, json_file)
+        json.dump(output_dict, json_file, indent=2)
     except OSError as e:
         print(f'Error opening {output_file}: ', e)
         sys.exit(1)
