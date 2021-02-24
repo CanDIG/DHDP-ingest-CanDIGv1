@@ -121,8 +121,9 @@ section_to_mapping_types = {
 
     "follow-up patient status": [
         ("Outcome", {
+            "patientId": "Subject",
             "dateOfAssessment": (date_from_datetime, "FU_STATUS_DT"),
-            "diseaeResponseOrStatus": (lambda s: s.strip('"'), "DISEASE_STATUS"),
+            "diseaseResponseOrStatus": (lambda s: s.strip('"'), "DISEASE_STATUS"),
             "localId": (outcome_label, "Subject")
         })
     ],
@@ -245,7 +246,7 @@ def main():
         new_local_id = outcome_label(patient_id, increment=True)
         if not "dateOfDeath" in patient_to_data[patient_id]["Patient"]:
             if not "Outcome" in patient_to_data[patient_id]:
-                patient_to_data[patient_id]["Outcome"] = {"localId": new_local_id}
+                patient_to_data[patient_id]["Outcome"] = {"localId": new_local_id, "patientId": patient_id}
 
             outcomes = patient_to_data[patient_id]["Outcome"]
             if isinstance(outcomes, dict):
@@ -253,7 +254,7 @@ def main():
             elif isinstance(outcomes, list):
                 patient_to_data[patient_id]["Outcome"][-1]["vitalStatus"] = "Alive"
         else:
-            new_dict = {"vitalStatus": "Dead", "localId": new_local_id}
+            new_dict = {"vitalStatus": "Dead", "localId": new_local_id, "patientId": patient_id}
             if "Diagnosis" in patient_to_data[patient_id] and\
                     len(patient_to_data[patient_id]["Diagnosis"]["diagnosisDate"]) > 0:
                 diagnosis_date = datetime.strptime(patient_to_data[patient_id]["Diagnosis"]["diagnosisDate"], "%m/%d/%Y")
@@ -271,7 +272,7 @@ def main():
                 patient_to_data[patient_id]["Outcome"][-1]["overallSurvivalInMonths"] = new_dict["overallSurvivalInMonths"]
 
     output_dict = {"metadata": list(patient_to_data.values())}
-    json.dump(output_dict, outfile)
+    json.dump(output_dict, outfile, indent=2)
 
 
 if __name__ == '__main__':
